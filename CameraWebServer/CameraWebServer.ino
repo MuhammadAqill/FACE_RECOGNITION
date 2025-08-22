@@ -11,8 +11,6 @@
 // #define CAMERA_MODEL_WROVER_KIT
 // #define CAMERA_MODEL_M5STACK_PSRAM
 #define CAMERA_MODEL_AI_THINKER
-#define RX2 16   // ESP32-CAM RX dari ESP32 TX
-#define TX2 14   // ESP32-CAM TX (boleh digunakan untuk reply)
 
 const char* ssid = "AYAM2.4G";
 const char* password = "memensem";
