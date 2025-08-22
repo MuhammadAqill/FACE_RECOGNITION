@@ -1,5 +1,6 @@
 #include "esp_camera.h"
 #include <WiFi.h>
+ #include <esp_heap_caps.h>
 
 //
 // WARNING!!! Make sure that you have either selected ESP32 Wrover Module,
@@ -134,6 +135,22 @@ void setup() {
   }
   Serial.println("");
   Serial.println("WiFi connected");
+
+  if (psramInit()) {
+    Serial.println("PSRAM initialized successfully!");
+  } else {
+    Serial.println("PSRAM initialization failed...");
+  }
+
+  int *myPsramArray = (int *) ps_malloc(1000 * sizeof(int)); // Allocate 1000 integers in PSRAM
+
+  if (myPsramArray) {
+    Serial.println("Array allocated in PSRAM.");
+    // Use myPsramArray...
+    free(myPsramArray); // Free the allocated memory
+  } else {
+    Serial.println("Failed to allocate array in PSRAM.");
+  }
   
   startCameraServer();
   
