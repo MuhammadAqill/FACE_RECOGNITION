@@ -43,31 +43,13 @@ void loop() {
   if (lastButtonState == HIGH && buttonState == LOW) {
     Serial.println("Button pressed - LED ON");
     digitalWrite(LED_PIN, HIGH); // LED menyala
-    sendRequest(String(camIP) + "/ledon");
   }
 
   // Optional: padamkan LED bila butang dilepaskan
   if (lastButtonState == LOW && buttonState == HIGH) {
     Serial.println("Button released - LED OFF");
     digitalWrite(LED_PIN, LOW);
-    sendRequest(String(camIP) + "/ledoff");
   }
 
   lastButtonState = buttonState;
-}
-
-void sendRequest(String url) {
-  if (WiFi.status() == WL_CONNECTED) {
-    HTTPClient http;
-    http.begin(url);
-    int httpCode = http.GET();
-    if (httpCode > 0) {
-      Serial.printf("HTTP Response code: %d\n", httpCode);
-    } else {
-      Serial.printf("HTTP Request failed, error: %s\n", http.errorToString(httpCode).c_str());
-    }
-    http.end();
-  } else {
-    Serial.println("WiFi not connected");
-  }
 }
