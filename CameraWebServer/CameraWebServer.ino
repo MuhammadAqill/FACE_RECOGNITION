@@ -83,6 +83,7 @@ void startCameraServer();
 
 void setup() {
   Serial.begin(115200);
+  Serial2.begin(9600, SERIAL_8N1, RXp2, TXp2);
   Serial.setDebugOutput(true);
   Serial.println();
 
