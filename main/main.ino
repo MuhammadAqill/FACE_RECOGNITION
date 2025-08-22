@@ -8,7 +8,7 @@ const char* password = "memensem";
 // ESP32-CAM IP address
 const char* camIP = "http://192.168.0.140";
 
-#define BUTTON_PIN 14   // Pin untuk butang
+#define BUTTON_PIN 4   // Pin untuk butang
 #define LED_PIN 2       // Pin LED (built-in LED pada ESP32)
 
 
