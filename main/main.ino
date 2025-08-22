@@ -11,6 +11,8 @@ const char* camIP = "http://192.168.0.140";
 #define BUTTON_PIN 14   // Pin untuk butang
 #define LED_PIN 2       // Pin LED (built-in LED pada ESP32)
 
+#define RX2 16   // ESP32: RX tidak digunakan, hanya TX
+#define TX2 17   // ESP32: TX ke ESP32-CAM RX
 
 
 bool lastButtonState = HIGH;
@@ -18,6 +20,7 @@ bool camState = false;  // false = OFF, true = ON
 
 void setup() {
   Serial.begin(115200);
+  Serial2.begin(9600, SERIAL_8N1, RX2, TX2);  // UART2 untuk komunikasi
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   pinMode(LED_PIN, OUTPUT);   // LED output
   digitalWrite(LED_PIN, LOW); // Pastikan mula-mula LED padam
@@ -39,8 +42,9 @@ void setup() {
 void loop() {
   bool buttonState = digitalRead(BUTTON_PIN);
 
-  Serial.println("Data : " + String(random(1,100)));
-  delay(1000);
+  Serial2.println("Hello ESP32-CAM!");  // Hantar mesej
+  Serial.println("Sent: Hello ESP32-CAM!");
+  delay(1000);  // hantar setiap 1 saat
 
   // Detect button press (falling edge)
   if (lastButtonState == HIGH && buttonState == LOW) {
