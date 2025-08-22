@@ -11,8 +11,8 @@
 // #define CAMERA_MODEL_WROVER_KIT
 // #define CAMERA_MODEL_M5STACK_PSRAM
 #define CAMERA_MODEL_AI_THINKER
-#define RXp2 1
-#define TXp2 3
+#define RX2 16   // ESP32-CAM RX dari ESP32 TX
+#define TX2 14   // ESP32-CAM TX (boleh digunakan untuk reply)
 
 const char* ssid = "AYAM2.4G";
 const char* password = "memensem";
@@ -83,7 +83,8 @@ void startCameraServer();
 
 void setup() {
   Serial.begin(115200);
-  Serial2.begin(9600, SERIAL_8N1, RXp2, TXp2);
+  Serial2.begin(9600, SERIAL_8N1, RX2, TX2);
+  Serial.println("ESP32-CAM Receiver ready!");
   Serial.setDebugOutput(true);
   Serial.println();
 
@@ -163,8 +164,9 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-  Serial.println("Messege Received : ");
-  Serial.println(Serial2.readString());
-  delay(100);
+  while (Serial2.available()) {
+    char c = Serial2.read();    // baca satu per satu
+    Serial.write(c);            // print ke monitor
+  }
+  delay(10);
 }
