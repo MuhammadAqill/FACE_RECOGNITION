@@ -2,8 +2,8 @@
 #include <HTTPClient.h>
 
 // Replace with your network credentials
-const char* ssid = "AYAM2.4G";
-const char* password = "memensem";
+const char* ssid = "AYAM2.4G_BOLEHLAH";
+const char* password = "fawwaznakayam";
 
 // ESP32-CAM IP address
 const char* camIP = "http://192.168.0.140";
@@ -23,17 +23,17 @@ void setup() {
   digitalWrite(LED_PIN, LOW); // Pastikan mula-mula LED padam
 
   // Connect to Wi-Fi
-  Serial.println("Connecting to WiFi...");
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println("\nConnected to WiFi");
+  // Serial.println("Connecting to WiFi...");
+  // WiFi.begin(ssid, password);
+  // while (WiFi.status() != WL_CONNECTED) {
+  //   delay(500);
+  //   Serial.print(".");
+  // }
+  // Serial.println("\nConnected to WiFi");
 
-  // Tunjukkan IP address
-  Serial.print("ESP32 IP Address: ");
-  Serial.println(WiFi.localIP());
+  // // Tunjukkan IP address
+  // Serial.print("ESP32 IP Address: ");
+  // Serial.println(WiFi.localIP());
 }
 
 void loop() {
