@@ -15,8 +15,8 @@
 
 #include "camera_pins.h"
 
-const char* ssid = "AYAM2.4G_BOLELAH"; // AYAM2.4G_BOLELAH Redmi 9C
-const char* password = "fawwaznakayam"; // fawwaznakayam aqilsem#
+const char* ssid = "itik"; // AYAM2.4G_BOLELAH Redmi 9C
+const char* password = "cucutimah"; // fawwaznakayam aqilsem#
 
 void startCameraServer();
 
