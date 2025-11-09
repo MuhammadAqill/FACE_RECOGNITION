@@ -1,55 +1,109 @@
 #include <WiFi.h>
-#include <HTTPClient.h>
+#include <Firebase_ESP_Client.h>
+#include "addons/TokenHelper.h"   // optional (debug token)
+#include "addons/RTDBHelper.h"    // optional (debug RTDB)
 
-// Replace with your network credentials
-const char* ssid = "AYAM2.4G_BOLELAH";
+// ================= Wi-Fi =================
+const char* ssid     = "AYAM2.4G_BOLELAH";
 const char* password = "fawwaznakayam";
 
-// ESP32-CAM IP address
-const char* camIP = "http://192.168.0.140";
+// =============== Firebase RTDB ===============
+#define API_KEY "AIzaSyCxTNJxuuVkOOdDmqmO6TMcS3EJ4eWDNLg"
+#define DATABASE_URL "https://database-for-fyp-hafiy-default-rtdb.asia-southeast1.firebasedatabase.app/"
 
-#define BUTTON_PIN 4   // Pin untuk butang
-#define LED_PIN 2       // Pin LED (built-in LED pada ESP32)
+// =============== Pin setup ===============
+#define BUTTON_PIN 4
+#define LED_PIN    5
 
+// =============== Status strings ===============
+const char* STATUS_WAITING = "Waiting";
+const char* STATUS_ARRIVE  = "Someone_Arrive";
 
-bool lastButtonState = HIGH;
-bool camState = false;  // false = OFF, true = ON
+// Firebase objects
+FirebaseAuth auth;
+FirebaseConfig config;
+FirebaseData fbdo;
 
-void setup() {
-  Serial.begin(115200);
-  Serial2.begin(9600, SERIAL_8N1, RX2, TX2);  // UART2 untuk komunikasi
-  pinMode(BUTTON_PIN, INPUT_PULLUP);
-  pinMode(LED_PIN, OUTPUT);   // LED output
-  digitalWrite(LED_PIN, LOW); // Pastikan mula-mula LED padam
+// State & debounce
+bool lastStableState = HIGH;     // INPUT_PULLUP: idle HIGH
+bool lastReading     = HIGH;
+unsigned long lastChangeMs = 0;
+const unsigned long debounceMs = 40;
 
-  // Connect to Wi-Fi
+// ---------------- Helpers ----------------
+void connectWiFi() {
   Serial.println("Connecting to WiFi...");
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
     Serial.print(".");
+    delay(250);
   }
-  Serial.println("\nConnected to WiFi");
+  Serial.printf("\nWiFi Connected. IP: %s\n", WiFi.localIP().toString().c_str());
+}
 
-  // Tunjukkan IP address
-  Serial.print("ESP32 IP Address: ");
-  Serial.println(WiFi.localIP());
+void startFirebase() {
+  config.api_key = API_KEY;
+  config.database_url = DATABASE_URL;
+  config.token_status_callback = tokenStatusCallback; // optional
+
+  // Anonymous sign-up (simple & works with auth rules)
+  Serial.println("Firebase anonymous sign-up...");
+  if (!Firebase.signUp(&config, &auth, "", "")) {
+    Serial.printf("SignUp failed: %s\n", config.signer.signupError.message.c_str());
+  } else {
+    Serial.println("SignUp OK");
+  }
+
+  Firebase.begin(&config, &auth);
+  Firebase.reconnectWiFi(true);
+
+  // Set initial status to "Waiting" (optional)
+  if (!Firebase.RTDB.setString(&fbdo, "/arrival_status", STATUS_WAITING)) {
+    Serial.printf("Init write failed: %s\n", fbdo.errorReason().c_str());
+  }
+}
+
+// ---------------- Arduino ----------------
+void setup() {
+  Serial.begin(115200);
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, LOW);
+
+  connectWiFi();
+  startFirebase();
 }
 
 void loop() {
-  bool buttonState = digitalRead(BUTTON_PIN);
+  bool reading = digitalRead(BUTTON_PIN);
 
-  // Detect button press (falling edge)
-  if (lastButtonState == HIGH && buttonState == LOW) {
-    Serial.println("Button pressed - LED ON");
-    digitalWrite(LED_PIN, HIGH); // LED menyala
+  // Debounce
+  if (reading != lastReading) {
+    lastChangeMs = millis();
+    lastReading = reading;
   }
 
-  // Optional: padamkan LED bila butang dilepaskan
-  if (lastButtonState == LOW && buttonState == HIGH) {
-    Serial.println("Button released - LED OFF");
-    digitalWrite(LED_PIN, LOW);
-  }
+  if (millis() - lastChangeMs > debounceMs) {
+    // FALLING EDGE (button pressed)
+    if (lastStableState == HIGH && reading == LOW) {
+      Serial.println("Pressed -> LED ON, status: Someone Arrive");
+      digitalWrite(LED_PIN, HIGH);
+      if (!Firebase.RTDB.setString(&fbdo, "/arrival_status", STATUS_ARRIVE)) {
+        Serial.printf("Write failed: %s\n", fbdo.errorReason().c_str());
+      }
+    }
 
-  lastButtonState = buttonState;
+    // RISING EDGE (button released)
+    if (lastStableState == LOW && reading == HIGH) {
+      Serial.println("Released -> LED OFF, status: Waiting");
+      digitalWrite(LED_PIN, LOW);
+      if (!Firebase.RTDB.setString(&fbdo, "/arrival_status", STATUS_WAITING)) {
+        Serial.printf("Write failed: %s\n", fbdo.errorReason().c_str());
+      }
+    }
+
+    lastStableState = reading;
+
+    delay(2000);
+  }
 }
