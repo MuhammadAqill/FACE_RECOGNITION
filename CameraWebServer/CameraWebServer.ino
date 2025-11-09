@@ -1,22 +1,29 @@
 #include "esp_camera.h"
+#include "app_httpd.h"
 #include <WiFi.h>
 
-//
-// WARNING!!! Make sure that you have either selected ESP32 Wrover Module,
-//            or another board which has PSRAM enabled
-//
+// ESP32-specific file system includes
+#define FS_NO_GLOBALS
+#include <FS.h>
+#include <SD_MMC.h>
 
-// Select camera model
-// #define CAMERA_MODEL_WROVER_KIT
-//#define CAMERA_MODEL_ESP_EYE
-// #define CAMERA_MODEL_M5STACK_PSRAM
-// #define CAMERA_MODEL_M5STACK_WIDE
+// Firebase includes
+#include <Firebase_ESP_Client.h>
+
+// Your camera configuration
 #define CAMERA_MODEL_AI_THINKER
-
 #include "camera_pins.h"
 
-const char* ssid = "itik"; // AYAM2.4G_BOLELAH Redmi 9C
-const char* password = "cucutimah"; // fawwaznakayam aqilsem#
+const char* ssid = "AYAM2.4G_BOLELAH";
+const char* password = "fawwaznakayam";
+
+// Firebase configuration
+#define API_KEY "AIzaSyCxTNJxuuVkOOdDmqmO6TMcS3EJ4eWDNLg"
+#define DATABASE_URL "https://database-for-fyp-hafiy-default-rtdb.asia-southeast1.firebasedatabase.app/"
+
+FirebaseData fbdo;
+FirebaseAuth auth;
+FirebaseConfig config;
 
 void startCameraServer();
 
@@ -25,6 +32,18 @@ void setup() {
   Serial.setDebugOutput(true);
   Serial.println();
 
+  // Initialize Firebase
+  config.api_key = API_KEY;
+  config.database_url = DATABASE_URL;
+  
+  // Uncomment if using authentication
+  // auth.user.email = "user@email.com";
+  // auth.user.password = "password";
+  
+  Firebase.begin(&config, &auth);
+  Firebase.reconnectWiFi(true);
+
+  // Your existing camera configuration
   camera_config_t config;
   config.ledc_channel = LEDC_CHANNEL_0;
   config.ledc_timer = LEDC_TIMER_0;
@@ -46,7 +65,7 @@ void setup() {
   config.pin_reset = RESET_GPIO_NUM;
   config.xclk_freq_hz = 20000000;
   config.pixel_format = PIXFORMAT_JPEG;
-  //init with high specs to pre-allocate larger buffers
+  
   if(psramFound()){
     config.frame_size = FRAMESIZE_UXGA;
     config.jpeg_quality = 10;
@@ -57,12 +76,6 @@ void setup() {
     config.fb_count = 1;
   }
 
-#if defined(CAMERA_MODEL_ESP_EYE)
-  pinMode(13, INPUT_PULLUP);
-  pinMode(14, INPUT_PULLUP);
-#endif
-
-  // camera init
   esp_err_t err = esp_camera_init(&config);
   if (err != ESP_OK) {
     Serial.printf("Camera init failed with error 0x%x", err);
@@ -70,22 +83,14 @@ void setup() {
   }
 
   sensor_t * s = esp_camera_sensor_get();
-  //initial sensors are flipped vertically and colors are a bit saturated
   if (s->id.PID == OV3660_PID) {
-    s->set_vflip(s, 1);//flip it back
-    s->set_brightness(s, 1);//up the blightness just a bit
-    s->set_saturation(s, -2);//lower the saturation
+    s->set_vflip(s, 1);
+    s->set_brightness(s, 1);
+    s->set_saturation(s, -2);
   }
-  //drop down frame size for higher initial frame rate
   s->set_framesize(s, FRAMESIZE_QVGA);
 
-#if defined(CAMERA_MODEL_M5STACK_WIDE)
-  s->set_vflip(s, 1);
-  s->set_hmirror(s, 1);
-#endif
-
   WiFi.begin(ssid, password);
-
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
@@ -94,13 +99,31 @@ void setup() {
   Serial.println("WiFi connected");
 
   startCameraServer();
-
   Serial.print("Camera Ready! Use 'http://");
   Serial.print(WiFi.localIP());
   Serial.println("' to connect");
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  static unsigned long t = 0;
+  if(millis() - t > 1000){
+    t = millis();
+    const char *name = app_get_last_matched_name();
+    int id = app_get_last_matched_id();
+    Serial.printf("Last matched id=%d name=%s\n", id, name);
+
+    if(Firebase.ready()) {
+      if(id == 0) {
+        String recognizedName1 = String(id);
+        Firebase.RTDB.setString(&fbdo, "/recognized_name", recognizedName1);
+      } else if(id == 1) {
+        String recognizedName2 = String(id);
+        Firebase.RTDB.setString(&fbdo, "/recognized_name", recognizedName2);
+      } else {
+        Firebase.RTDB.setString(&fbdo, "/recognized_name", "-");
+        Serial.println("Reset recognized_name");
+      }
+    }
+  }
   delay(10000);
 }

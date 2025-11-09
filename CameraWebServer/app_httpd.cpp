@@ -18,9 +18,21 @@
 #include "camera_index.h"
 #include "Arduino.h"
 
+#include "app_httpd.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
+
 #include "fb_gfx.h"
 #include "fd_forward.h"
 #include "fr_forward.h"
+
+// --- add this near top of file ---
+static const char * face_names[] = {
+    "AQIL",   // id 0
+    "HAFIY"   // id 1
+    // tambah lagi nama di sini ikut index face_id
+};
+#define FACE_NAME_COUNT (sizeof(face_names)/sizeof(face_names[0]))
 
 #define ENROLL_CONFIRM_TIMES 5
 #define FACE_ID_SAVE_NUMBER 7
@@ -33,6 +45,10 @@
 #define FACE_COLOR_YELLOW (FACE_COLOR_RED | FACE_COLOR_GREEN)
 #define FACE_COLOR_CYAN   (FACE_COLOR_BLUE | FACE_COLOR_GREEN)
 #define FACE_COLOR_PURPLE (FACE_COLOR_BLUE | FACE_COLOR_RED)
+
+static int last_matched_id = -1;
+static char last_name_buf[32] = "Unknown";
+static portMUX_TYPE name_mux = portMUX_INITIALIZER_UNLOCKED;
 
 typedef struct {
         size_t size; //number of values used for filtering
@@ -61,6 +77,28 @@ static int8_t detection_enabled = 0;
 static int8_t recognition_enabled = 0;
 static int8_t is_enrolling = 0;
 static face_id_list id_list = {0};
+
+int app_get_last_matched_id(){
+    int id;
+    portENTER_CRITICAL(&name_mux);
+    id = last_matched_id;
+    portEXIT_CRITICAL(&name_mux);
+    return id;
+}
+
+const char* app_name_for_id(int id){
+    if(id >= 0 && id < FACE_NAME_COUNT) return face_names[id];
+    return "Unknown";
+}
+
+const char* app_get_last_matched_name(){
+    // return pointer to internal buffer (thread-safe)
+    portENTER_CRITICAL(&name_mux);
+    const char *p = last_name_buf;
+    portEXIT_CRITICAL(&name_mux);
+    return p;
+}
+
 
 static ra_filter_t * ra_filter_init(ra_filter_t * filter, size_t sample_size){
     memset(filter, 0, sizeof(ra_filter_t));
@@ -191,9 +229,15 @@ static int run_face_recognition(dl_matrix3du_t *image_matrix, box_array_t *net_b
                 if (matched_id == 0) {
                     Serial.println("AQIL");
                     rgb_printf(image_matrix, FACE_COLOR_GREEN, "AQIL", matched_id);
+                    strncpy(last_name_buf, face_names[matched_id], sizeof(last_name_buf)-1);
+                    last_name_buf[sizeof(last_name_buf)-1] = 0;
+
                 } else if(matched_id == 1) {
                     Serial.println("HAFIY");
                     rgb_printf(image_matrix, FACE_COLOR_GREEN, "HAFIY", matched_id);
+                    strncpy(last_name_buf, face_names[matched_id], sizeof(last_name_buf)-1);
+                    last_name_buf[sizeof(last_name_buf)-1] = 0;
+
                 }
             } else {
                 Serial.println("No Match Found");
