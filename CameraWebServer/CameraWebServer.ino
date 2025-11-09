@@ -18,8 +18,8 @@ const char* ssid = "AYAM2.4G_BOLELAH";
 const char* password = "fawwaznakayam";
 
 // Firebase configuration
-#define API_KEY "AIzaSyCxTNJxuuVkOOdDmqmO6TMcS3EJ4eWDNLg"
-#define DATABASE_URL "https://database-for-fyp-hafiy-default-rtdb.asia-southeast1.firebasedatabase.app/"
+#define API_KEY ""
+#define DATABASE_URL ""
 
 FirebaseData fbdo;
 FirebaseAuth auth;
