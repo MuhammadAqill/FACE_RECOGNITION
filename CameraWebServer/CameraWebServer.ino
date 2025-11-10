@@ -1,5 +1,13 @@
 #include "esp_camera.h"
 #include <WiFi.h>
+#include <Arduino.h>
+
+extern "C" {
+  int get_last_matched_id(void);
+  void reset_last_matched_id(void);
+}
+
+int lastSeen = -2; // penjejak perubahan
 
 //
 // WARNING!!! Make sure that you have either selected ESP32 Wrover Module,
@@ -101,6 +109,10 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-  delay(10000);
+  int id = get_last_matched_id();
+
+  // Serial.print("Matched ID: ");
+  Serial.println(id);   // akan sentiasa print 0,1,-1 setiap kitaran loop
+
+  delay(100);   // 10 kali sesaat, cukup smooth
 }
